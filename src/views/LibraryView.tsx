@@ -13,12 +13,14 @@ import {
 } from 'lucide-react';
 import { BookCover } from '../components/common/BookCover';
 import { ProgressBar } from '../components/common/ProgressBar';
+import { EmptyState } from '../components/ui';
 import { useApp } from '../context/AppContext';
 import { UserBook, ReadingStatus } from '../types';
 
 interface LibraryViewProps {
   onOpenBookDetail: (book: UserBook) => void;
   onOpenAddBook: () => void;
+  onGoToDiscover?: () => void;
 }
 
 type FilterTab = 'all' | ReadingStatus;
@@ -26,7 +28,8 @@ type SortOption = 'date_added' | 'title' | 'author' | 'progress' | 'rating' | 'r
 
 export const LibraryView: React.FC<LibraryViewProps> = ({
   onOpenBookDetail,
-  onOpenAddBook
+  onOpenAddBook,
+  onGoToDiscover
 }) => {
   const { userBooks, collections, createCollection } = useApp();
 
@@ -344,25 +347,17 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             </div>
           )
         ) : (
-          /* Empty Search or Library State */
-          <div className="text-center py-12 px-4 bg-surface border border-dashed border-border rounded-3xl space-y-3">
-            <BookOpen className="w-10 h-10 mx-auto text-ink-faint opacity-60" />
-            <p className="font-serif text-base font-bold text-ink">
-              {searchQuery ? 'Nenhum livro corresponde à busca' : 'Nenhum livro nesta seção'}
-            </p>
-            <p className="text-xs text-ink-muted max-w-xs mx-auto">
-              {searchQuery
-                ? 'Tente buscar por outro termo ou adicione o livro à sua estante.'
-                : 'Adicione livros para organizar sua biblioteca e acompanhar sua leitura.'}
-            </p>
-            <button
-              onClick={onOpenAddBook}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl shadow-xs transition-all"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Adicionar Livro</span>
-            </button>
-          </div>
+          /* Empty Search or Library State conforme Seção 40 */
+          <EmptyState
+            title={searchQuery ? 'Nenhum livro corresponde à busca' : 'Seu próximo livro começa aqui.'}
+            description={
+              searchQuery
+                ? 'Tente buscar por outro termo ou adicione uma nova obra à sua estante.'
+                : 'Explore o catálogo, pesquise clássicos ou escaneie o código de barras para começar a montar sua estante.'
+            }
+            actionLabel={searchQuery ? 'Adicionar Livro' : 'Descobrir Livros'}
+            onAction={searchQuery ? onOpenAddBook : (onGoToDiscover || onOpenAddBook)}
+          />
         )}
       </div>
     </div>

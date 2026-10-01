@@ -82,6 +82,7 @@ const MainApp: React.FC = () => {
             <LibraryView
               onOpenBookDetail={(book) => setSelectedBookForDetail(book)}
               onOpenAddBook={() => setIsAddBookOpen(true)}
+              onGoToDiscover={() => setActiveTab('discover')}
             />
           )}
 
