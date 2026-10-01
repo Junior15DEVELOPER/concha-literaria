@@ -14,6 +14,8 @@ import { OcrQuoteModal } from './components/quotes/OcrQuoteModal';
 import { StreakInfoModal } from './components/common/StreakInfoModal';
 import { UserBook, Book } from './types';
 import { ToastProvider, OfflineBanner } from './components/ui';
+import { AuthProvider } from './context/AuthContext';
+import { AuthModal } from './features/auth';
 
 const MainApp: React.FC = () => {
   const { user, addBookToLibrary } = useApp();
@@ -22,6 +24,7 @@ const MainApp: React.FC = () => {
   // Modals state
   const [isAddBookOpen, setIsAddBookOpen] = useState(false);
   const [isStreakInfoOpen, setIsStreakInfoOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [selectedBookForDetail, setSelectedBookForDetail] = useState<UserBook | null>(null);
   const [targetBookForOcr, setTargetBookForOcr] = useState<UserBook | null>(null);
   const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
@@ -61,6 +64,7 @@ const MainApp: React.FC = () => {
         <Header
           onOpenAddBook={() => setIsAddBookOpen(true)}
           onOpenStreakInfo={() => setIsStreakInfoOpen(true)}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
         />
 
         {/* Dynamic Main View */}
@@ -131,6 +135,11 @@ const MainApp: React.FC = () => {
           isOpen={isStreakInfoOpen}
           onClose={() => setIsStreakInfoOpen(false)}
         />
+
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+        />
       </div>
     </div>
   );
@@ -139,9 +148,11 @@ const MainApp: React.FC = () => {
 export function App() {
   return (
     <ToastProvider>
-      <AppProvider>
-        <MainApp />
-      </AppProvider>
+      <AuthProvider>
+        <AppProvider>
+          <MainApp />
+        </AppProvider>
+      </AuthProvider>
     </ToastProvider>
   );
 }

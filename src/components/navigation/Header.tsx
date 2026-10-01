@@ -1,15 +1,18 @@
 import React from 'react';
-import { Flame, Plus, Moon, Sun, BookOpen } from 'lucide-react';
+import { Flame, Plus, Moon, Sun, BookOpen, LogIn, User as UserIcon } from 'lucide-react';
 import { ConchaLogo } from '../common/ConchaLogo';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface HeaderProps {
   onOpenAddBook: () => void;
   onOpenStreakInfo: () => void;
+  onOpenAuth?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenAddBook, onOpenStreakInfo }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenAddBook, onOpenStreakInfo, onOpenAuth }) => {
   const { user, currentStreak, updateUserProfile } = useApp();
+  const { user: authUser, isAuthenticated } = useAuth();
 
   const toggleTheme = () => {
     const nextTheme =
@@ -57,6 +60,30 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddBook, onOpenStreakInfo 
               <Moon className="w-4 h-4" />
             )}
           </button>
+
+          {/* Auth Button or User Avatar */}
+          {isAuthenticated && authUser ? (
+            <button
+              onClick={onOpenAuth}
+              className="w-8 h-8 rounded-full border border-border overflow-hidden bg-primary/10 flex items-center justify-center shrink-0 active:scale-95 shadow-xs"
+              title={`Logado como @${authUser.username}`}
+            >
+              {authUser.profile?.avatarUrl ? (
+                <img src={authUser.profile.avatarUrl} alt={authUser.name} className="w-full h-full object-cover" />
+              ) : (
+                <UserIcon className="w-4 h-4 text-primary" />
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={onOpenAuth}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-surface hover:bg-surface-hover border border-border text-ink font-semibold text-xs transition-all active:scale-95 shadow-xs"
+              title="Entrar ou criar conta"
+            >
+              <LogIn className="w-3.5 h-3.5 text-primary" />
+              <span>Entrar</span>
+            </button>
+          )}
 
           {/* Quick Add Book Action */}
           <button
