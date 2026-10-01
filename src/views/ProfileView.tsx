@@ -15,11 +15,16 @@ import {
   Shield, 
   Sparkles,
   Lock,
-  Check
+  Check,
+  LogOut,
+  Trash2,
+  Palette
 } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
 import { ConchaLogo } from '../components/common/ConchaLogo';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/ui/Toast';
 
 export const ProfileView: React.FC = () => {
   const { 
@@ -36,17 +41,25 @@ export const ProfileView: React.FC = () => {
     importDataJson
   } = useApp();
 
+  const { user: authUser, isAuthenticated, logout, token } = useAuth();
+  const { toast } = useToast();
+
   const [activeTab, setActiveTab] = useState<'stats' | 'achievements' | 'rewind' | 'settings'>('stats');
 
   // Edit Profile Modal
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [nameInput, setNameInput] = useState(user.name);
-  const [bioInput, setBioInput] = useState(user.bio || '');
-  const [avatarInput, setAvatarInput] = useState(user.avatarUrl);
+  const [nameInput, setNameInput] = useState(authUser?.name || user.name);
+  const [bioInput, setBioInput] = useState(authUser?.profile?.bio || user.bio || '');
+  const [avatarInput, setAvatarInput] = useState(authUser?.profile?.avatarUrl || user.avatarUrl);
 
   // Settings Goals Modal
-  const [yearlyGoalInput, setYearlyGoalInput] = useState(user.readingGoalYear);
-  const [dailyMinutesInput, setDailyMinutesInput] = useState(user.dailyMinutesGoal);
+  const [yearlyGoalInput, setYearlyGoalInput] = useState(authUser?.profile?.readingGoalYear || user.readingGoalYear);
+  const [dailyMinutesInput, setDailyMinutesInput] = useState(authUser?.profile?.dailyMinutesGoal || user.dailyMinutesGoal);
+
+  // Delete account state
+  const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // JSON Export / Import state
   const [importStatus, setImportStatus] = useState<string | null>(null);
@@ -80,7 +93,7 @@ export const ProfileView: React.FC = () => {
 
   const heatmapDays = getPastDays(28);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     updateUserProfile({
       name: nameInput,
@@ -89,7 +102,85 @@ export const ProfileView: React.FC = () => {
       readingGoalYear: yearlyGoalInput,
       dailyMinutesGoal: dailyMinutesInput
     });
+
+    if (token) {
+      try {
+        await fetch('/api/users/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: nameInput,
+            bio: bioInput,
+            avatarUrl: avatarInput,
+            readingGoalYear: yearlyGoalInput,
+            dailyMinutesGoal: dailyMinutesInput
+          })
+        });
+      } catch (err) {
+        console.warn('[ProfileView] Não foi possível sincronizar perfil remotamente.');
+      }
+    }
+
+    toast('Perfil atualizado com sucesso!', 'success');
     setIsEditingProfile(false);
+  };
+
+  const handleSelectTheme = async (newTheme: 'light' | 'dark' | 'sepia') => {
+    updateUserProfile({ themePreference: newTheme });
+    document.documentElement.classList.remove('dark', 'theme-sepia');
+    if (newTheme === 'dark') document.documentElement.classList.add('dark');
+    if (newTheme === 'sepia') document.documentElement.classList.add('theme-sepia');
+
+    if (token) {
+      try {
+        await fetch('/api/users/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ themePreference: newTheme })
+        });
+      } catch (err) {
+        console.warn('[ProfileView] Falha ao salvar tema no servidor.');
+      }
+    }
+    toast(`Tema ${newTheme === 'light' ? 'Claro' : newTheme === 'dark' ? 'Escuro' : 'Sépia'} ativado!`, 'info');
+  };
+
+  const handleDeleteAccountConfirm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+
+    setIsDeleting(true);
+    try {
+      const res = await fetch('/api/users/delete-account', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ password: deletePassword })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        toast(data.error || 'Erro ao excluir conta', 'error');
+        setIsDeleting(false);
+        return;
+      }
+
+      toast('Sua conta e dados foram permanentemente excluídos.', 'info');
+      logout();
+      setIsDeleteAccountOpen(false);
+    } catch {
+      toast('Erro de conexão ao excluir conta.', 'error');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleExport = () => {
@@ -357,10 +448,100 @@ export const ProfileView: React.FC = () => {
       {/* TAB 4: AJUSTES & BACKUP */}
       {activeTab === 'settings' && (
         <div className="space-y-4 text-xs">
-          {/* Goals */}
+          {/* 1. Conta & Sessão */}
           <div className="bg-surface border border-border rounded-2xl p-4 space-y-3">
-            <h4 className="font-bold text-ink-muted uppercase tracking-wider">
-              Metas de Leitura
+            <h4 className="font-bold text-ink-muted uppercase tracking-wider flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-primary" />
+              <span>Sua Conta</span>
+            </h4>
+
+            {isAuthenticated && authUser ? (
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between p-2.5 bg-surface-hover rounded-xl border border-border/40">
+                  <div>
+                    <span className="font-bold text-ink block">{authUser.name}</span>
+                    <span className="text-ink-muted text-[11px]">@{authUser.username} • {authUser.email}</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-primary-light text-primary font-bold text-[10px]">
+                    {authUser.role}
+                  </span>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={logout}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-surface-hover border border-border hover:bg-surface font-semibold text-ink rounded-xl transition-colors"
+                  >
+                    <LogOut className="w-3.5 h-3.5 text-ink-muted" />
+                    <span>Sair da Conta</span>
+                  </button>
+
+                  <button
+                    onClick={() => setIsDeleteAccountOpen(true)}
+                    className="flex items-center justify-center gap-1.5 py-2 px-3 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 font-semibold text-red-600 dark:text-red-400 rounded-xl transition-colors"
+                    title="Excluir conta e dados permanentemente conforme LGPD"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Excluir</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 bg-surface-hover rounded-xl border border-border/40 text-center space-y-2">
+                <p className="text-ink-muted text-xs">Você está navegando como visitante local.</p>
+                <p className="text-ink-faint text-[11px]">Entre com sua conta para sincronizar suas leituras no PostgreSQL e acessar seus dados em qualquer dispositivo.</p>
+              </div>
+            )}
+          </div>
+
+          {/* 2. Tema & Aparência */}
+          <div className="bg-surface border border-border rounded-2xl p-4 space-y-3">
+            <h4 className="font-bold text-ink-muted uppercase tracking-wider flex items-center gap-1.5">
+              <Palette className="w-3.5 h-3.5 text-primary" />
+              <span>Tema de Leitura</span>
+            </h4>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => handleSelectTheme('light')}
+                className={`py-2 px-2.5 rounded-xl border text-center transition-all ${
+                  user.themePreference === 'light'
+                    ? 'border-primary bg-primary-light font-bold text-primary shadow-xs'
+                    : 'border-border bg-surface-hover text-ink-muted hover:text-ink'
+                }`}
+              >
+                ☀️ Claro
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectTheme('dark')}
+                className={`py-2 px-2.5 rounded-xl border text-center transition-all ${
+                  user.themePreference === 'dark'
+                    ? 'border-primary bg-primary-light font-bold text-primary shadow-xs'
+                    : 'border-border bg-surface-hover text-ink-muted hover:text-ink'
+                }`}
+              >
+                🌙 Escuro
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectTheme('sepia')}
+                className={`py-2 px-2.5 rounded-xl border text-center transition-all ${
+                  user.themePreference === 'sepia'
+                    ? 'border-primary bg-primary-light font-bold text-primary shadow-xs'
+                    : 'border-border bg-surface-hover text-ink-muted hover:text-ink'
+                }`}
+              >
+                📜 Sépia
+              </button>
+            </div>
+          </div>
+
+          {/* 3. Metas de Leitura */}
+          <div className="bg-surface border border-border rounded-2xl p-4 space-y-3">
+            <h4 className="font-bold text-ink-muted uppercase tracking-wider flex items-center gap-1.5">
+              <Target className="w-3.5 h-3.5 text-primary" />
+              <span>Metas Pessoais</span>
             </h4>
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -388,21 +569,22 @@ export const ProfileView: React.FC = () => {
                   readingGoalYear: yearlyGoalInput,
                   dailyMinutesGoal: dailyMinutesInput
                 });
-                alert('Metas atualizadas com sucesso!');
+                toast('Metas salvas com sucesso!', 'success');
               }}
-              className="w-full py-2 bg-primary text-white font-bold rounded-xl shadow-2xs"
+              className="w-full py-2 bg-primary text-white font-bold rounded-xl shadow-2xs hover:bg-primary-hover transition-colors"
             >
               Salvar Metas
             </button>
           </div>
 
-          {/* Backup Data */}
+          {/* 4. Backup Data */}
           <div className="bg-surface border border-border rounded-2xl p-4 space-y-3">
-            <h4 className="font-bold text-ink-muted uppercase tracking-wider">
-              Backup & Sincronização
+            <h4 className="font-bold text-ink-muted uppercase tracking-wider flex items-center gap-1.5">
+              <Download className="w-3.5 h-3.5 text-primary" />
+              <span>Backup & Sincronização</span>
             </h4>
             <p className="text-ink-muted text-[11px]">
-              Seus dados são salvos localmente e sincronizados de forma offline-first. Você pode exportar ou restaurar backups a qualquer momento.
+              Seus dados são preservados com redundância. Você pode exportar seu histórico completo ou restaurar a qualquer momento.
             </p>
 
             <div className="grid grid-cols-2 gap-2">
@@ -464,10 +646,48 @@ export const ProfileView: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs"
+            className="w-full py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:bg-primary-hover transition-colors"
           >
             Salvar Alterações
           </button>
+        </form>
+      </Modal>
+
+      {/* Delete Account Modal (LGPD) */}
+      <Modal isOpen={isDeleteAccountOpen} onClose={() => setIsDeleteAccountOpen(false)} title="Excluir Conta Permanentemente">
+        <form onSubmit={handleDeleteAccountConfirm} className="space-y-3 text-xs">
+          <p className="text-ink-muted text-xs leading-relaxed">
+            Esta ação é irreversível. Todas as suas leituras, notas, citações e dados pessoais serão excluídos do banco de dados em conformidade com as diretrizes de privacidade e LGPD.
+          </p>
+
+          <div>
+            <label className="block font-semibold text-ink-muted mb-1">Confirme sua senha</label>
+            <input
+              type="password"
+              required
+              placeholder="Digite sua senha atual"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              className="w-full px-3 py-2 bg-surface border border-red-300 dark:border-red-900/50 rounded-xl text-sm text-ink"
+            />
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setIsDeleteAccountOpen(false)}
+              className="flex-1 py-2.5 bg-surface-hover border border-border font-semibold text-ink rounded-xl"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isDeleting || !deletePassword}
+              className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50"
+            >
+              {isDeleting ? 'Excluindo...' : 'Confirmar Exclusão'}
+            </button>
+          </div>
         </form>
       </Modal>
     </div>
