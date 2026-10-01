@@ -1,18 +1,29 @@
-// Prisma Client Singleton para ambiente Serverless Vercel e Node
+// Prisma Client Singleton com inicializacao preguicosa (Lazy Proxy) para Serverless Vercel
 import { PrismaClient } from '@prisma/client';
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
+let prismaInstance: PrismaClient | null = null;
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
-  });
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
+function getPrismaClient(): PrismaClient {
+  if (!prismaInstance) {
+    const isDev = process.env.NODE_ENV === 'development';
+    prismaInstance = new PrismaClient({
+      log: isDev ? ['query', 'error', 'warn'] : ['error']
+    });
+  }
+  return prismaInstance;
 }
 
+// Proxy transparente: Prisma só instancia quando um método é realmente invocado
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getPrismaClient();
+    const value = (client as any)[prop];
+    if (typeof value === 'function') {
+      return value.bind(client);
+    }
+    return value;
+  }
+});
+
 export default prisma;
+
