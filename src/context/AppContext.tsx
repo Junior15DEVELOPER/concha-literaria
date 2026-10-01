@@ -536,7 +536,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       timestamp: new Date().toISOString().split('T')[0]
     };
 
-    // Save session
+    // Save session locally
     setSessions(prev => [newSession, ...prev]);
 
     // Update book progress
@@ -550,6 +550,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         totalTimeSpentSeconds: (b.totalTimeSpentSeconds || 0) + newSession.durationSeconds
       };
     }));
+
+    // Sincronização Serverless com PostgreSQL se autenticado (Seção 49)
+    if (typeof window !== 'undefined') {
+      const authToken = localStorage.getItem('concha_auth_token');
+      if (authToken) {
+        fetch('/api/reading/session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            userBookId: activeSession.userBookId,
+            bookId: activeSession.bookId,
+            startPage: activeSession.startPage,
+            endPage: validEndPage,
+            durationSeconds: newSession.durationSeconds,
+            startedAt: new Date(activeSession.startTime).toISOString(),
+            endedAt: new Date().toISOString(),
+            notes: note || undefined
+          })
+        }).catch((err) => console.warn('[AppContext] Sincronização remota pausada:', err));
+      }
+    }
 
     // Clear active session
     setActiveSession(null);

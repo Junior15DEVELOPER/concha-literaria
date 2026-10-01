@@ -242,7 +242,61 @@ export const ReadingModeView: React.FC<ReadingModeViewProps> = ({ onOpenBookSele
         )}
       </div>
 
-      {/* 4. Finish Session Dialog (Asks pages read as per #12) */}
+      {/* 4. Ritmo e Velocidade de Leitura (Seção 16) */}
+      {currentBook && currentBook.totalPages > 0 && (
+        <div className="p-4 bg-surface border border-border/60 rounded-2xl space-y-2">
+          <div className="flex items-center justify-between text-xs font-bold text-ink">
+            <span className="flex items-center gap-1.5">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              <span>Ritmo & Estimativa de Leitura</span>
+            </span>
+            <span className="text-ink-muted text-[11px] font-normal">
+              {currentBook.totalPages - currentBook.currentPage} páginas restantes
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+            <div className="p-2 bg-surface-hover/60 rounded-xl border border-border/30">
+              <span className="block text-[10px] text-ink-muted uppercase">Ritmo Médio</span>
+              <span className="font-bold text-xs text-ink">
+                {currentBook.totalTimeSpentSeconds && currentBook.currentPage > 0
+                  ? `${Math.round((currentBook.currentPage / (currentBook.totalTimeSpentSeconds / 3600)) || 30)} pág/h`
+                  : '~35 pág/h'}
+              </span>
+            </div>
+
+            <div className="p-2 bg-surface-hover/60 rounded-xl border border-border/30">
+              <span className="block text-[10px] text-ink-muted uppercase">Tempo/Página</span>
+              <span className="font-bold text-xs text-ink">
+                {currentBook.totalTimeSpentSeconds && currentBook.currentPage > 0
+                  ? `${Math.round((currentBook.totalTimeSpentSeconds / currentBook.currentPage) / 60 * 10) / 10} min`
+                  : '~1.7 min'}
+              </span>
+            </div>
+
+            <div className="p-2 bg-surface-hover/60 rounded-xl border border-border/30">
+              <span className="block text-[10px] text-ink-muted uppercase">Para Concluir</span>
+              <span className="font-bold text-xs text-primary">
+                {(() => {
+                  const rem = Math.max(0, currentBook.totalPages - currentBook.currentPage);
+                  const minPerPage = currentBook.totalTimeSpentSeconds && currentBook.currentPage > 0
+                    ? (currentBook.totalTimeSpentSeconds / currentBook.currentPage) / 60
+                    : 1.7;
+                  const totalEstMin = Math.round(rem * minPerPage);
+                  if (totalEstMin >= 60) {
+                    const h = Math.floor(totalEstMin / 60);
+                    const m = totalEstMin % 60;
+                    return `${h}h ${m}m`;
+                  }
+                  return `${totalEstMin} min`;
+                })()}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Finish Session Dialog (Asks pages read as per #12) */}
       <Modal isOpen={isFinishing} onClose={() => setIsFinishing(false)} title="Finalizar Sessão de Leitura">
         <form onSubmit={handleConfirmFinish} className="space-y-4 text-xs">
           <div className="bg-surface-hover/80 p-3 rounded-2xl border border-border text-center space-y-1">
@@ -298,7 +352,7 @@ export const ReadingModeView: React.FC<ReadingModeViewProps> = ({ onOpenBookSele
             type="submit"
             className="w-full py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-98"
           >
-            Confirmar e Salvar no Firebase
+            Confirmar e Registrar Leitura
           </button>
         </form>
       </Modal>
