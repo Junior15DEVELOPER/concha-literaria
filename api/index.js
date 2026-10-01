@@ -22632,10 +22632,41 @@ async function handler24(req, res) {
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
-  if (typeof req.body === "string" && req.body.length > 0) {
-    try {
-      req.body = JSON.parse(req.body);
-    } catch {
+  if (!res.status) {
+    res.status = function(statusCode) {
+      this.statusCode = statusCode;
+      return this;
+    };
+  }
+  res.json = function(data) {
+    if (!this.getHeader("Content-Type")) {
+      this.setHeader("Content-Type", "application/json; charset=utf-8");
+    }
+    this.end(JSON.stringify(data));
+    return this;
+  };
+  if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH") {
+    if (!req.body || typeof req.body === "object" && Object.keys(req.body).length === 0) {
+      try {
+        const buffers = [];
+        for await (const chunk of req) {
+          buffers.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        }
+        if (buffers.length > 0) {
+          const raw = Buffer.concat(buffers).toString("utf8");
+          try {
+            req.body = JSON.parse(raw);
+          } catch {
+            req.body = raw;
+          }
+        }
+      } catch {
+      }
+    } else if (typeof req.body === "string" && req.body.length > 0) {
+      try {
+        req.body = JSON.parse(req.body);
+      } catch {
+      }
     }
   }
   const rawUrl = req.url || "";

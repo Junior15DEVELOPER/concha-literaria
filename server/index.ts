@@ -37,12 +37,46 @@ export default async function handler(req: any, res: any) {
     return res.status(200).end();
   }
 
-  // Parse JSON body safely if sent as raw text
-  if (typeof req.body === 'string' && req.body.length > 0) {
-    try {
-      req.body = JSON.parse(req.body);
-    } catch {
-      // Continue if body cannot be parsed as JSON
+  // Polyfill status and json for raw Node http.ServerResponse
+  if (!res.status) {
+    res.status = function (statusCode: number) {
+      this.statusCode = statusCode;
+      return this;
+    };
+  }
+  res.json = function (data: any) {
+    if (!this.getHeader('Content-Type')) {
+      this.setHeader('Content-Type', 'application/json; charset=utf-8');
+    }
+    this.end(JSON.stringify(data));
+    return this;
+  };
+
+  // Ensure body is parsed if delivered via stream or string
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    if (!req.body || (typeof req.body === 'object' && Object.keys(req.body).length === 0)) {
+      try {
+        const buffers: any[] = [];
+        for await (const chunk of req) {
+          buffers.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        }
+        if (buffers.length > 0) {
+          const raw = Buffer.concat(buffers).toString('utf8');
+          try {
+            req.body = JSON.parse(raw);
+          } catch {
+            req.body = raw;
+          }
+        }
+      } catch {
+        // Stream may have already been consumed
+      }
+    } else if (typeof req.body === 'string' && req.body.length > 0) {
+      try {
+        req.body = JSON.parse(req.body);
+      } catch {
+        // Raw string body
+      }
     }
   }
 
