@@ -64,6 +64,9 @@ export default async function handler(req: any, res: any) {
     });
   } catch (error: any) {
     console.error('[API Login] Erro interno:', error);
-    return res.status(500).json({ error: 'Erro interno ao autenticar usuário' });
+    return res.status(500).json({
+      error: 'Erro interno ao autenticar usuário',
+      detail: error?.message || 'Falha na conexão com banco de dados'
+    });
   }
 }

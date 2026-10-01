@@ -20558,7 +20558,10 @@ async function handler(req, res) {
     });
   } catch (error62) {
     console.error("[API Login] Erro interno:", error62);
-    return res.status(500).json({ error: "Erro interno ao autenticar usu\xE1rio" });
+    return res.status(500).json({
+      error: "Erro interno ao autenticar usu\xE1rio",
+      detail: error62?.message || "Falha na conex\xE3o com banco de dados"
+    });
   }
 }
 
@@ -20643,7 +20646,10 @@ async function handler2(req, res) {
     });
   } catch (error62) {
     console.error("[API Register] Erro interno:", error62);
-    return res.status(500).json({ error: "Erro interno ao processar cadastro" });
+    return res.status(500).json({
+      error: "Erro interno ao processar cadastro",
+      detail: error62?.message || "Falha na conex\xE3o com banco de dados"
+    });
   }
 }
 

@@ -97,6 +97,9 @@ export default async function handler(req: any, res: any) {
     });
   } catch (error: any) {
     console.error('[API Register] Erro interno:', error);
-    return res.status(500).json({ error: 'Erro interno ao processar cadastro' });
+    return res.status(500).json({
+      error: 'Erro interno ao processar cadastro',
+      detail: error?.message || 'Falha na conexão com banco de dados'
+    });
   }
 }
