@@ -3,10 +3,25 @@ import { PrismaClient } from '@prisma/client';
 
 let prismaInstance: PrismaClient | null = null;
 
+function getDatabaseUrl(): string | undefined {
+  return (
+    process.env.DATABASE_URL ||
+    process.env.STORAGE_PRISMA_URL ||
+    process.env.STORAGE_URL ||
+    process.env.POSTGRES_PRISMA_URL ||
+    process.env.POSTGRES_URL
+  );
+}
+
 function getPrismaClient(): PrismaClient {
   if (!prismaInstance) {
     const isDev = process.env.NODE_ENV === 'development';
+    const dbUrl = getDatabaseUrl();
+    if (dbUrl && !process.env.DATABASE_URL) {
+      process.env.DATABASE_URL = dbUrl;
+    }
     prismaInstance = new PrismaClient({
+      datasources: dbUrl ? { db: { url: dbUrl } } : undefined,
       log: isDev ? ['query', 'error', 'warn'] : ['error']
     });
   }

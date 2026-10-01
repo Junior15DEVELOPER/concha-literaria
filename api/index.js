@@ -7,10 +7,18 @@ var __export = (target, all) => {
 // src/lib/prisma.ts
 import { PrismaClient } from "@prisma/client";
 var prismaInstance = null;
+function getDatabaseUrl() {
+  return process.env.DATABASE_URL || process.env.STORAGE_PRISMA_URL || process.env.STORAGE_URL || process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL;
+}
 function getPrismaClient() {
   if (!prismaInstance) {
     const isDev = process.env.NODE_ENV === "development";
+    const dbUrl = getDatabaseUrl();
+    if (dbUrl && !process.env.DATABASE_URL) {
+      process.env.DATABASE_URL = dbUrl;
+    }
     prismaInstance = new PrismaClient({
+      datasources: dbUrl ? { db: { url: dbUrl } } : void 0,
       log: isDev ? ["query", "error", "warn"] : ["error"]
     });
   }
