@@ -1,0 +1,156 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-serif: 'Playfair Display', Georgia, serif;
+    --font-reading: 'Lora', Georgia, serif;
+    
+    /* Light Theme (Aconchegante / Pergaminho) */
+    --color-bg: #FAF8F5;
+    --color-surface: #FFFFFF;
+    --color-surface-hover: #F5EFEB;
+    --color-surface-card: #FFFFFF;
+    --color-border: #E8DFD5;
+    --color-border-subtle: #F0E9DF;
+    
+    --color-primary: #9C3826;
+    --color-primary-hover: #822C1D;
+    --color-primary-light: #FBF0ED;
+    
+    --color-accent: #D47A41;
+    --color-gold: #C9882B;
+    --color-sage: #366048;
+    --color-sage-light: #EBF4EF;
+    
+    --color-ink: #1C1917;
+    --color-ink-muted: #665E58;
+    --color-ink-faint: #A8A19A;
+    
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+  }
+
+  .dark {
+    /* Dark Theme (Biblioteca Noturna / Obsidian) */
+    --color-bg: #121110;
+    --color-surface: #1C1A18;
+    --color-surface-hover: #262320;
+    --color-surface-card: #181715;
+    --color-border: #2E2A26;
+    --color-border-subtle: #24211D;
+    
+    --color-primary: #E0674B;
+    --color-primary-hover: #EC7A60;
+    --color-primary-light: #2A1A16;
+    
+    --color-accent: #E59654;
+    --color-gold: #E5B25D;
+    --color-sage: #569B75;
+    --color-sage-light: #16261E;
+    
+    --color-ink: #F5EFE6;
+    --color-ink-muted: #ABA298;
+    --color-ink-faint: #635C54;
+  }
+
+  .theme-sepia {
+    --color-bg: #F4EAD4;
+    --color-surface: #FBF4E6;
+    --color-surface-hover: #EFE4CC;
+    --color-surface-card: #FDF9EE;
+    --color-border: #DFD3BA;
+    --color-border-subtle: #E8DDC6;
+    
+    --color-primary: #87361E;
+    --color-primary-hover: #702914;
+    --color-primary-light: #EFE3DA;
+    
+    --color-ink: #2B2118;
+    --color-ink-muted: #736454;
+    --color-ink-faint: #A89886;
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+.font-reading {
+  font-family: var(--font-reading);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-faint);
+}
+
+/* Book 3D spine & shadow effect */
+.book-spine-shadow {
+  box-shadow: 
+    -4px 4px 10px -2px rgba(0, 0, 0, 0.2),
+    0 10px 20px -4px rgba(0, 0, 0, 0.15),
+    inset 4px 0 6px -2px rgba(255, 255, 255, 0.25),
+    inset -4px 0 6px -2px rgba(0, 0, 0, 0.3);
+}
+
+.book-card-glow:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 28px rgba(156, 56, 38, 0.18), 0 10px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Smooth bottom-sheet bounce */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}

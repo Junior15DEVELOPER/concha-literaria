@@ -1,0 +1,51 @@
+{
+  "name": "Concha Literária — Plataforma Social de Leitura",
+  "short_name": "Concha Literária",
+  "description": "Sua biblioteca pessoal, diário literário, cronômetro de precisão, OCR de citações e rede social de leitores.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF8F5",
+  "theme_color": "#9C3826",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["books", "lifestyle", "education", "social"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Biblioteca",
+      "short_name": "Biblioteca",
+      "description": "Acessar sua estante de livros",
+      "url": "/?tab=library",
+      "icons": [{ "src": "/favicon.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Continuar Lendo",
+      "short_name": "Leitura",
+      "description": "Iniciar cronômetro de leitura",
+      "url": "/?tab=reading",
+      "icons": [{ "src": "/favicon.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Descobrir Livros",
+      "short_name": "Descobrir",
+      "description": "Explorar novos lançamentos e clássicos",
+      "url": "/?tab=discover",
+      "icons": [{ "src": "/favicon.svg", "sizes": "96x96" }]
+    }
+  ]
+}
