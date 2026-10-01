@@ -1,0 +1,487 @@
+// Prisma Schema — Concha Literária (PostgreSQL)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// 1. USUÁRIO E AUTENTICAÇÃO
+// ==========================================
+
+enum UserRole {
+  USER
+  PREMIUM
+  ADMIN
+}
+
+enum ThemePreference {
+  light
+  dark
+  sepia
+}
+
+enum VisibilityLevel {
+  PUBLIC
+  FOLLOWERS
+  PRIVATE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String
+  name         String
+  role         UserRole @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relações
+  profile                Profile?
+  settings               UserSettings?
+  streak                 ReadingStreak?
+  library                UserBook[]
+  readingSessions        ReadingSession[]
+  goals                  ReadingGoal[]
+  notes                  ReadingNote[]
+  quotes                 Quote[]
+  reviews                Review[]
+  collections            Collection[]
+  achievements           UserAchievement[]
+  posts                  Post[]
+  likes                  Like[]
+  comments               Comment[]
+  notificationsReceived  Notification[]    @relation("UserNotifications")
+  notificationsTriggered Notification[]    @relation("NotificationActor")
+
+  // Rede Social (Seguidores / Seguindo)
+  following Follow[] @relation("FollowerRelation")
+  followers Follow[] @relation("FollowingRelation")
+
+  @@index([email])
+  @@index([username])
+}
+
+model Profile {
+  id               String          @id @default(cuid())
+  userId           String          @unique
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatarUrl        String?
+  bio              String?         @db.VarChar(500)
+  birthDate        DateTime?
+  location         String?
+  website          String?
+  isPublic         Boolean         @default(true)
+  readingGoalYear  Int             @default(24)
+  dailyMinutesGoal Int             @default(30)
+  dailyPagesGoal   Int             @default(20)
+  themePreference  ThemePreference @default(light)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([userId])
+}
+
+model UserSettings {
+  id                 String          @id @default(cuid())
+  userId             String          @unique
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileVisibility  VisibilityLevel @default(PUBLIC)
+  activityVisibility VisibilityLevel @default(PUBLIC)
+  libraryVisibility  VisibilityLevel @default(PUBLIC)
+  quotesVisibility   VisibilityLevel @default(PUBLIC)
+  emailNotifications Boolean         @default(true)
+  pushNotifications  Boolean         @default(true)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([userId])
+}
+
+// ==========================================
+// 2. LIVROS E BIBLIOTECA PESSOAL
+// ==========================================
+
+model Book {
+  id            String   @id @default(cuid())
+  title         String
+  subtitle      String?
+  authors       String[] // Array de nomes dos autores
+  isbn10        String?  @unique
+  isbn13        String?  @unique
+  publisher     String?
+  publishedYear Int?
+  pageCount     Int
+  coverUrl      String?
+  description   String?  @db.Text
+  categories    String[] // Gêneros literários
+  language      String   @default("pt")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relações
+  userBooks       UserBook[]
+  readingSessions ReadingSession[]
+  quotes          Quote[]
+  reviews         Review[]
+  collectionItems CollectionBook[]
+
+  @@index([title])
+  @@index([isbn13])
+}
+
+enum ReadingStatus {
+  WANT_TO_READ
+  READING
+  READ
+  REREADING
+  ABANDONED
+  FAVORITE
+}
+
+model UserBook {
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId         String
+  book           Book          @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  status         ReadingStatus @default(WANT_TO_READ)
+  currentPage    Int           @default(0)
+  isFavorite     Boolean       @default(false)
+  rating         Float? // 0.0 a 5.0 (meia estrela permitida)
+  startDate      DateTime?
+  finishDate     DateTime?
+  notesCount     Int           @default(0)
+  totalReadingMs Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Relações
+  sessions ReadingSession[]
+  notes    ReadingNote[]
+  reviews  Review[]
+
+  @@unique([userId, bookId])
+  @@index([userId, status])
+  @@index([bookId])
+}
+
+// ==========================================
+// 3. LEITURA, SESSÕES E CRONÔMETRO
+// ==========================================
+
+model ReadingSession {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userBookId      String
+  userBook        UserBook @relation(fields: [userBookId], references: [id], onDelete: Cascade)
+  bookId          String
+  book            Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  startPage       Int
+  endPage         Int
+  pagesRead       Int
+  durationSeconds Int
+  startedAt       DateTime
+  endedAt         DateTime
+  notes           String?  @db.VarChar(2000)
+  mood            String?
+  createdAt       DateTime @default(now())
+
+  @@index([userId, startedAt])
+  @@index([userBookId])
+  @@index([bookId])
+}
+
+model ReadingStreak {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak Int       @default(0)
+  longestStreak Int       @default(0)
+  lastReadDate  DateTime?
+  activeDates   String[] // Lista de datas ISO no formato YYYY-MM-DD
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+enum GoalFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum GoalType {
+  PAGES
+  MINUTES
+  BOOKS
+}
+
+model ReadingGoal {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  frequency   GoalFrequency
+  type        GoalType
+  targetValue Int
+  year        Int?
+  month       Int?
+  startDate   DateTime      @default(now())
+  endDate     DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([userId, frequency])
+}
+
+// ==========================================
+// 4. DIÁRIO DE LEITURA, NOTAS E CITAÇÕES
+// ==========================================
+
+enum NoteType {
+  NOTE
+  CHARACTER
+  REFLECTION
+  VOCABULARY
+  QUOTE
+}
+
+model ReadingNote {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userBookId String
+  userBook   UserBook @relation(fields: [userBookId], references: [id], onDelete: Cascade)
+  page       Int?
+  content    String   @db.Text
+  type       NoteType @default(NOTE)
+  isSpoiler  Boolean  @default(false)
+  isPrivate  Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userBookId])
+}
+
+model Quote {
+  id         String          @id @default(cuid())
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId     String?
+  book       Book?           @relation(fields: [bookId], references: [id], onDelete: SetNull)
+  bookTitle  String
+  author     String
+  text       String          @db.Text
+  page       Int?
+  context    String?         @db.VarChar(500)
+  isOcr      Boolean         @default(false)
+  isSpoiler  Boolean         @default(false)
+  isFavorite Boolean         @default(false)
+  visibility VisibilityLevel @default(PUBLIC)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([bookId])
+}
+
+model Review {
+  id         String          @id @default(cuid())
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId     String
+  book       Book            @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  userBookId String
+  userBook   UserBook        @relation(fields: [userBookId], references: [id], onDelete: Cascade)
+  title      String?         @db.VarChar(200)
+  content    String          @db.Text
+  rating     Float // 0 a 5 com meias estrelas
+  isSpoiler  Boolean         @default(false)
+  visibility VisibilityLevel @default(PUBLIC)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([bookId])
+  @@index([userBookId])
+}
+
+// ==========================================
+// 5. COLEÇÕES
+// ==========================================
+
+model Collection {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(300)
+  color       String   @default("#9C3826")
+  coverUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  books CollectionBook[]
+
+  @@index([userId])
+}
+
+model CollectionBook {
+  id           String     @id @default(cuid())
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  bookId       String
+  book         Book       @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  order        Int        @default(0)
+  addedAt      DateTime   @default(now())
+
+  @@unique([collectionId, bookId])
+  @@index([collectionId])
+  @@index([bookId])
+}
+
+// ==========================================
+// 6. GAMIFICAÇÃO E CONQUISTAS
+// ==========================================
+
+model Achievement {
+  id          String   @id
+  title       String
+  description String
+  category    String
+  iconName    String
+  secret      Boolean  @default(false)
+  xpReward    Int      @default(50)
+  createdAt   DateTime @default(now())
+
+  users UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  unlockedAt    DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@index([achievementId])
+}
+
+// ==========================================
+// 7. REDE SOCIAL, FEED, CURTIDAS E COMENTÁRIOS
+// ==========================================
+
+enum PostType {
+  BOOK_FINISHED
+  BOOK_STARTED
+  STREAK_MILESTONE
+  ACHIEVEMENT_UNLOCKED
+  REVIEW_POSTED
+  QUOTE_SHARED
+  CUSTOM_THOUGHT
+}
+
+model Post {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         PostType
+  content      String   @db.Text
+  bookId       String?
+  hasSpoiler   Boolean  @default(false)
+  likesCount   Int      @default(0)
+  commentCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  likes    Like[]
+  comments Comment[]
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId    String
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentId  String? // Suporte arquitetural a respostas aninhadas
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  content   String    @db.VarChar(1000)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([postId])
+  @@index([userId])
+  @@index([parentId])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  follower    User     @relation("FollowerRelation", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("FollowingRelation", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+// ==========================================
+// 8. NOTIFICAÇÕES
+// ==========================================
+
+enum NotificationType {
+  NEW_FOLLOWER
+  POST_LIKE
+  POST_COMMENT
+  ACHIEVEMENT_UNLOCKED
+  GOAL_REACHED
+  STREAK_ALERT
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  actorId   String?
+  actor     User?            @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean          @default(false)
+  linkUrl   String?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, read])
+  @@index([createdAt])
+}
