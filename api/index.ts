@@ -1,5 +1,4 @@
 // Unified Serverless Dispatcher — Concha Literária (Vercel)
-import healthHandler from '../server/health';
 import authLoginHandler from '../server/auth/login';
 import authRegisterHandler from '../server/auth/register';
 import authMeHandler from '../server/auth/me';
@@ -58,7 +57,12 @@ export default async function handler(req: any, res: any) {
     switch (pathname) {
       case '/api':
       case '/api/health':
-        return await healthHandler(req, res);
+        return res.status(200).json({
+          status: 'ok',
+          app: 'Concha Literária',
+          version: '1.0.0',
+          timestamp: new Date().toISOString()
+        });
 
       case '/api/auth/login':
         return await authLoginHandler(req, res);

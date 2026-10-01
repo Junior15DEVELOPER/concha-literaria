@@ -6,7 +6,7 @@
   "cleanUrls": true,
   "functions": {
     "api/index.ts": {
-      "includeFiles": "server/**"
+      "includeFiles": "{server/**,node_modules/.prisma/client/**,node_modules/@prisma/client/**}"
     }
   },
   "rewrites": [
