@@ -1,27 +1,27 @@
-// Unified Serverless Dispatcher — Concha Literária (Vercel)
-import authLoginHandler from '../server/auth/login';
-import authRegisterHandler from '../server/auth/register';
-import authMeHandler from '../server/auth/me';
-import userProfileHandler from '../server/users/profile';
-import userSettingsHandler from '../server/users/settings';
-import userDeleteAccountHandler from '../server/users/delete-account';
-import userExportHandler from '../server/users/export';
-import userImportHandler from '../server/users/import';
-import libraryIndexHandler from '../server/library/index';
-import libraryUpdateHandler from '../server/library/update';
-import collectionsIndexHandler from '../server/collections/index';
-import collectionsManageHandler from '../server/collections/manage';
-import readingSessionHandler from '../server/reading/session';
-import readingStreakHandler from '../server/reading/streak';
-import goalsHandler from '../server/goals/index';
-import achievementsHandler from '../server/achievements/index';
-import booksSearchHandler from '../server/books/search';
-import socialPostsHandler from '../server/social/posts';
-import socialLikeHandler from '../server/social/like';
-import socialCommentsHandler from '../server/social/comments';
-import socialFollowHandler from '../server/social/follow';
-import socialNotificationsHandler from '../server/social/notifications';
-import statisticsHandler from '../server/statistics/index';
+// Unified Serverless Dispatcher Source — Concha Literária
+import authLoginHandler from './auth/login';
+import authRegisterHandler from './auth/register';
+import authMeHandler from './auth/me';
+import userProfileHandler from './users/profile';
+import userSettingsHandler from './users/settings';
+import userDeleteAccountHandler from './users/delete-account';
+import userExportHandler from './users/export';
+import userImportHandler from './users/import';
+import libraryIndexHandler from './library/index';
+import libraryUpdateHandler from './library/update';
+import collectionsIndexHandler from './collections/index';
+import collectionsManageHandler from './collections/manage';
+import readingSessionHandler from './reading/session';
+import readingStreakHandler from './reading/streak';
+import goalsHandler from './goals/index';
+import achievementsHandler from './achievements/index';
+import booksSearchHandler from './books/search';
+import socialPostsHandler from './social/posts';
+import socialLikeHandler from './social/like';
+import socialCommentsHandler from './social/comments';
+import socialFollowHandler from './social/follow';
+import socialNotificationsHandler from './social/notifications';
+import statisticsHandler from './statistics/index';
 
 export default async function handler(req: any, res: any) {
   // CORS configuration

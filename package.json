@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "prisma generate && tsc -b && vite build",
+    "build": "prisma generate && npm run build:api && tsc -b && vite build",
+    "build:api": "esbuild server/index.ts --bundle --platform=node --format=esm --external:@prisma/client --external:bcryptjs --outfile=api/index.js",
     "postinstall": "prisma generate",
     "lint": "oxlint",
     "preview": "vite preview",
@@ -42,6 +43,7 @@
     "@types/react-dom": "^19.2.4",
     "@vercel/node": "^17.0.0",
     "@vitejs/plugin-react": "^6.1.0",
+    "esbuild": "^0.28.2",
     "oxlint": "^1.79.0",
     "prisma": "^6.4.1",
     "tailwindcss": "^4.3.3",

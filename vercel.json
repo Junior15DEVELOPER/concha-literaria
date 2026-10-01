@@ -5,8 +5,8 @@
   "outputDirectory": "dist",
   "cleanUrls": true,
   "functions": {
-    "api/index.ts": {
-      "includeFiles": "{server/**,node_modules/.prisma/client/**,node_modules/@prisma/client/**}"
+    "api/index.js": {
+      "includeFiles": "{node_modules/.prisma/client/**,node_modules/@prisma/client/**}"
     }
   },
   "rewrites": [
